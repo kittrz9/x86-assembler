@@ -1,0 +1,163 @@
+#include <stdio.h>
+#include <stdint.h>
+#include <stdbool.h>
+#include <string.h>
+#include <stdlib.h>
+
+#define MAX_LINES 128
+#define MAX_STR_LEN 128
+
+#define MAX_TOKENS 32
+#define MAX_TOKEN_LEN 8
+
+char lines[MAX_LINES][MAX_STR_LEN];
+
+char lineTokens[MAX_LINES][MAX_TOKENS][MAX_TOKEN_LEN];
+
+char whitespace[] = { ' ', '\t', '\n', '\0' };
+
+bool isWhitespace(char c) {
+	char* c2 = whitespace;
+	while(*c2 != '\0') {
+		if(*c2 == c) { return true; }
+		++c2;
+	}
+	return false;
+}
+
+#define MAX_PROGRAM_SIZE 2048
+uint8_t code[MAX_PROGRAM_SIZE];
+
+uint64_t codePointer = 0;
+void addU8(uint8_t x) {
+	code[codePointer] = x;
+	++codePointer;
+}
+
+void addU32(uint32_t x) {
+	*(uint32_t*)&code[codePointer] = x;
+	codePointer += 4;
+}
+
+char hexLUT[] = "0123456789ABCDEF";
+uint32_t hexTo32(char* str) {
+	size_t len = strlen(str);
+	uint32_t returnVal = 0;
+	for(uint8_t i = 0; i < len; ++i) {
+		for(uint8_t j = 0; j < 0x10; ++j) {
+			if(hexLUT[j] == str[len-i-1]) {
+				returnVal |= j << i*4;
+			}
+		}
+	}
+
+	return returnVal;
+}
+uint8_t hexTo8(char* str) {
+	size_t len = strlen(str);
+	uint8_t returnVal = 0;
+	for(uint8_t i = 0; i < len; ++i) {
+		for(uint8_t j = 0; j < 0x10; ++j) {
+			if(hexLUT[j] == str[len-i-1]) {
+				returnVal |= j << i*4;
+			}
+		}
+	}
+
+	return returnVal;
+}
+
+int main(int argc, char** argv) {
+	if(argc != 2) {
+		return 1;
+	}
+	FILE* f = fopen(argv[1], "rb");
+	if(f == NULL) {
+		return 1;
+	}
+	uint8_t lineIndex = 0;
+	for(uint8_t i = 0; i < MAX_LINES; ++i) {
+		char temp[MAX_STR_LEN];
+		fgets(temp, MAX_STR_LEN, f);
+		char* c = temp;
+		bool blankLine = true;
+		while(*c != '\0') {
+			if(!isWhitespace(*c) && *c != ';') {
+				blankLine = false;
+				break;
+			}
+			++c;
+		}
+		if(!blankLine) {
+			strcpy(lines[lineIndex], temp);
+			++lineIndex;
+		}
+	}
+	fclose(f);
+
+	lineIndex = 0;
+	for(uint8_t i = 0; i < MAX_LINES; ++i) {
+		char* c = lines[i];
+		uint8_t tokenIndex = 0;
+		while(*c != '\0') {
+			if(*c == ';') { break; }
+			if(isWhitespace(*c)) {
+				++c;
+				continue;
+			}
+			char* nextWhitespace = c+1;
+			while(!isWhitespace(*nextWhitespace)) {
+				++nextWhitespace;
+			}
+			uint8_t tokenLen = nextWhitespace - c;
+			if(tokenLen == 0) {
+				exit(1);
+			}
+			strncpy(lineTokens[lineIndex][tokenIndex], c, tokenLen);
+			printf("t:%s w:%i\n", lineTokens[i][tokenIndex], tokenLen);
+			++tokenIndex;
+			c += tokenLen;
+		}
+		if(tokenIndex != 0) {
+			++lineIndex;
+		}
+	}
+
+	for(uint8_t i = 0; i < MAX_LINES; ++i) {
+		printf("line %i\n", i);
+		for(uint8_t j = 0; j < MAX_TOKENS; ++j) {
+			if(lineTokens[i][j][0] == '\0') { break; }
+			printf("-%s\n", lineTokens[i][j]);
+			if(strcmp(lineTokens[i][j], "mov") == 0) {
+				printf("mov!!\n");
+				++j;
+				if(strcmp(lineTokens[i][j], "eax") == 0) {
+					printf("eax!!!\n");
+					addU8(0xb8);
+				} else if(strcmp(lineTokens[i][j], "edi") == 0) {
+					printf("edi!!!\n");
+					addU8(0xbf);
+				}
+				++j;
+				addU32(hexTo32(lineTokens[i][j]));
+			} else if(strcmp(lineTokens[i][j], "syscall") == 0) {
+				addU8(0x0f);
+				addU8(0x05);
+			} else if(strcmp(lineTokens[i][j], "db") == 0) {
+				++j;
+				while(lineTokens[i][j][0] != '\0') {
+					printf("%s\n", lineTokens[i][j]);
+					addU8(hexTo8(lineTokens[i][j]));
+					++j;
+				}
+			}
+		}
+	}
+
+	for(size_t i = 0; i < MAX_PROGRAM_SIZE; ++i) {
+		printf("%02X", code[i]);
+	}
+	printf("\n");
+
+	return 0;
+}
