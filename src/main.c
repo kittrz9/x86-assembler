@@ -4,6 +4,39 @@
 #include <string.h>
 #include <stdlib.h>
 
+enum x86Regs {
+	REG_EAX = 0,
+	REG_ECX = 1,
+	REG_EDX = 2,
+	REG_EBX = 3,
+	REG_ESP = 4,
+	REG_EBP = 5,
+	REG_ESI = 6,
+	REG_EDI = 7,
+	REG_COUNT,
+};
+
+char regStrs[REG_COUNT][4] = {
+	[REG_EAX] = "eax",
+	[REG_ECX] = "ecx",
+	[REG_EDX] = "edx",
+	[REG_EBX] = "ebx",
+	[REG_ESP] = "esp",
+	[REG_EBP] = "ebp",
+	[REG_ESI] = "esi",
+	[REG_EDI] = "edi",
+};
+
+enum x86Regs getRegister(char* str) {
+	for(uint8_t i = 0; i < REG_COUNT; ++i) {
+		if(strcmp(str, regStrs[i]) == 0) {
+			return i;
+		}
+	}
+	printf("unknown register \"%s\"\n", str);
+	exit(1);
+}
+
 #define MAX_LINES 128
 #define MAX_STR_LEN 128
 
@@ -131,13 +164,7 @@ int main(int argc, char** argv) {
 			if(strcmp(lineTokens[i][j], "mov") == 0) {
 				printf("mov!!\n");
 				++j;
-				if(strcmp(lineTokens[i][j], "eax") == 0) {
-					printf("eax!!!\n");
-					addU8(0xb8);
-				} else if(strcmp(lineTokens[i][j], "edi") == 0) {
-					printf("edi!!!\n");
-					addU8(0xbf);
-				}
+				addU8(0xb8 + getRegister(lineTokens[i][j]));
 				++j;
 				addU32(hexTo32(lineTokens[i][j]));
 			} else if(strcmp(lineTokens[i][j], "syscall") == 0) {
