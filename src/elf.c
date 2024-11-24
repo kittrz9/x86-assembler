@@ -2,9 +2,14 @@
 
 #include <stdio.h>
 
+#include "labels.h"
+#include "backpatches.h"
+
 #define SECTION_ADDR 0x400000
 
 char sectionNames[] = "\0.text\0.shstrtab\0";
+
+uint32_t entryPoint;
 
 void createElfFromCode(char* filePath, uint8_t* code, uint64_t codeSize) {
 	uint64_t codeOffset = sizeof(struct elfHeaderStruct) + sizeof(struct programHeaderStruct);
@@ -53,6 +58,8 @@ void createElfFromCode(char* filePath, uint8_t* code, uint64_t codeSize) {
 		},
 	};
 
+	entryPoint = findLabelAddr("entry");
+
 	struct elfHeaderStruct elfHeader = {
 		.magic = "\x7F""ELF", // have to concatenate like this because of funny hex string shenanigans
 		.bits = 2, // 64 bit
@@ -64,7 +71,7 @@ void createElfFromCode(char* filePath, uint8_t* code, uint64_t codeSize) {
 		.type = 2, // executable
 		.arch = 0x3E, // x86-64
 		.ver2 = 1,
-		.entryPoint = sHeaders[1].virtAddr,
+		.entryPoint = sHeaders[1].virtAddr + entryPoint,
 		.programHeaderOffset = sizeof(struct elfHeaderStruct),
 		.sectionHeaderOffset = sizeof(struct elfHeaderStruct) + sizeof(pHeaders) + codeSize + sizeof(sectionNames),
 		.flags = 0,
@@ -75,6 +82,8 @@ void createElfFromCode(char* filePath, uint8_t* code, uint64_t codeSize) {
 		.sectionHeaderCount = sizeof(sHeaders)/sizeof(struct sectionHeaderStruct),
 		.sectionNamesIndex = 2,
 	};
+
+	resolveBackpatches(code, sHeaders[1].virtAddr);
 
 	FILE* f = fopen(filePath, "wb");
 

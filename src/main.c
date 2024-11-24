@@ -5,6 +5,8 @@
 #include <stdlib.h>
 
 #include "elf.h"
+#include "labels.h"
+#include "backpatches.h"
 
 enum x86Regs {
 	REG_EAX = 0,
@@ -65,8 +67,6 @@ uint8_t code[MAX_PROGRAM_SIZE];
 
 uint64_t codePointer = 0;
 
-uint64_t entryPoint = 0;
-
 void addU8(uint8_t x) {
 	code[codePointer] = x;
 	++codePointer;
@@ -104,16 +104,6 @@ uint8_t hexTo8(char* str) {
 
 	return returnVal;
 }
-
-#define MAX_LABEL_LEN 32
-#define MAX_LABELS 64
-struct labelStruct {
-	char name[MAX_LABEL_LEN];
-	uint64_t address;
-};
-
-struct labelStruct labels[MAX_LABELS];
-uint8_t labelPointer;
 
 bool endsWith(char* str, char c) {
 	uint8_t l = strlen(str);
@@ -185,18 +175,19 @@ int main(int argc, char** argv) {
 			if(endsWith(lineTokens[i][j], ':')) {
 				// new label
 				uint8_t l = strlen(lineTokens[i][j]) - 1;
-				strncpy(labels[labelPointer].name, lineTokens[i][j], l);
-				labels[labelPointer].address = codePointer;
-				++labelPointer;
-				if(strncmp(lineTokens[i][j], "entry", l) == 0) {
-					entryPoint = codePointer;
-				}
+				addLabel(lineTokens[i][j], l, codePointer);
 			}
 			if(strcmp(lineTokens[i][j], "mov") == 0) {
 				++j;
 				addU8(0xb8 + getRegister(lineTokens[i][j]));
 				++j;
-				addU32(hexTo32(lineTokens[i][j]));
+				if(lineTokens[i][j][0] == '@') {
+					//addU32(findLabelAddr(lineTokens[i][j]+1));
+					addBackpatch(lineTokens[i][j]+1, codePointer);
+					addU32(0);
+				} else {
+					addU32(hexTo32(lineTokens[i][j]));
+				}
 			} else if(strcmp(lineTokens[i][j], "syscall") == 0) {
 				addU8(0x0f);
 				addU8(0x05);
@@ -216,12 +207,7 @@ int main(int argc, char** argv) {
 	}
 	printf("\n");
 
-	labelPointer = 0;
-	while(labels[labelPointer].name[0] != '\0') {
-		printf("label %s: %lu\n", labels[labelPointer].name, labels[labelPointer].address);
-		++labelPointer;
-	}
-	printf("entry point: %lu\n", entryPoint);
+	printLabels();
 
 	createElfFromCode("test.elf", code, codePointer); // codePointer works as length here
 
