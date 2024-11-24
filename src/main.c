@@ -64,6 +64,9 @@ bool isWhitespace(char c) {
 uint8_t code[MAX_PROGRAM_SIZE];
 
 uint64_t codePointer = 0;
+
+uint64_t entryPoint = 0;
+
 void addU8(uint8_t x) {
 	code[codePointer] = x;
 	++codePointer;
@@ -100,6 +103,21 @@ uint8_t hexTo8(char* str) {
 	}
 
 	return returnVal;
+}
+
+#define MAX_LABEL_LEN 32
+#define MAX_LABELS 64
+struct labelStruct {
+	char name[MAX_LABEL_LEN];
+	uint64_t address;
+};
+
+struct labelStruct labels[MAX_LABELS];
+uint8_t labelPointer;
+
+bool endsWith(char* str, char c) {
+	uint8_t l = strlen(str);
+	return str[l-1] == c;
 }
 
 int main(int argc, char** argv) {
@@ -164,6 +182,16 @@ int main(int argc, char** argv) {
 		for(uint8_t j = 0; j < MAX_TOKENS; ++j) {
 			if(lineTokens[i][j][0] == '\0') { break; }
 			printf("-%s\n", lineTokens[i][j]);
+			if(endsWith(lineTokens[i][j], ':')) {
+				// new label
+				uint8_t l = strlen(lineTokens[i][j]) - 1;
+				strncpy(labels[labelPointer].name, lineTokens[i][j], l);
+				labels[labelPointer].address = codePointer;
+				++labelPointer;
+				if(strncmp(lineTokens[i][j], "entry", l) == 0) {
+					entryPoint = codePointer;
+				}
+			}
 			if(strcmp(lineTokens[i][j], "mov") == 0) {
 				++j;
 				addU8(0xb8 + getRegister(lineTokens[i][j]));
@@ -187,6 +215,13 @@ int main(int argc, char** argv) {
 		printf("%02X", code[i]);
 	}
 	printf("\n");
+
+	labelPointer = 0;
+	while(labels[labelPointer].name[0] != '\0') {
+		printf("label %s: %lu\n", labels[labelPointer].name, labels[labelPointer].address);
+		++labelPointer;
+	}
+	printf("entry point: %lu\n", entryPoint);
 
 	createElfFromCode("test.elf", code, codePointer); // codePointer works as length here
 
