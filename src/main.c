@@ -4,6 +4,8 @@
 #include <string.h>
 #include <stdlib.h>
 
+#include "elf.h"
+
 enum x86Regs {
 	REG_EAX = 0,
 	REG_ECX = 1,
@@ -147,7 +149,7 @@ int main(int argc, char** argv) {
 				exit(1);
 			}
 			strncpy(lineTokens[lineIndex][tokenIndex], c, tokenLen);
-			printf("t:%s w:%i\n", lineTokens[i][tokenIndex], tokenLen);
+			printf("t:%s w:%i\n", lineTokens[lineIndex][tokenIndex], tokenLen);
 			++tokenIndex;
 			c += tokenLen;
 		}
@@ -157,12 +159,12 @@ int main(int argc, char** argv) {
 	}
 
 	for(uint8_t i = 0; i < MAX_LINES; ++i) {
+		if(lineTokens[i][0][0] == '\0') { continue; }
 		printf("line %i\n", i);
 		for(uint8_t j = 0; j < MAX_TOKENS; ++j) {
 			if(lineTokens[i][j][0] == '\0') { break; }
 			printf("-%s\n", lineTokens[i][j]);
 			if(strcmp(lineTokens[i][j], "mov") == 0) {
-				printf("mov!!\n");
 				++j;
 				addU8(0xb8 + getRegister(lineTokens[i][j]));
 				++j;
@@ -181,10 +183,12 @@ int main(int argc, char** argv) {
 		}
 	}
 
-	for(size_t i = 0; i < MAX_PROGRAM_SIZE; ++i) {
+	for(size_t i = 0; i < codePointer; ++i) {
 		printf("%02X", code[i]);
 	}
 	printf("\n");
+
+	createElfFromCode("test.elf", code, codePointer); // codePointer works as length here
 
 	return 0;
 }
