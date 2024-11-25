@@ -195,6 +195,13 @@ int main(int argc, char** argv) {
 				++j;
 				while(lineTokens[i][j][0] != '\0') {
 					printf("%s\n", lineTokens[i][j]);
+					if(lineTokens[i][j][0] == '"') {
+						char* str = lineTokens[i][j] + 1;
+						while(*str != '"') {
+							addU8(*str);
+							++str;
+						}
+					}
 					addU8(hexTo8(lineTokens[i][j]));
 					++j;
 				}
