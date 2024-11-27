@@ -121,7 +121,9 @@ int main(int argc, char** argv) {
 	uint8_t lineIndex = 0;
 	for(uint8_t i = 0; i < MAX_LINES; ++i) {
 		char temp[MAX_STR_LEN];
-		fgets(temp, MAX_STR_LEN, f);
+		if(fgets(temp, MAX_STR_LEN, f) == NULL) {
+			break;
+		}
 		char* c = temp;
 		bool blankLine = true;
 		while(*c != '\0') {
@@ -171,12 +173,14 @@ int main(int argc, char** argv) {
 		printf("line %i\n", i);
 		for(uint8_t j = 0; j < MAX_TOKENS; ++j) {
 			if(lineTokens[i][j][0] == '\0') { break; }
-			printf("-%s\n", lineTokens[i][j]);
+			printf("%i %i -%s\n", i,j,lineTokens[i][j]);
 			if(endsWith(lineTokens[i][j], ':')) {
 				// new label
 				uint8_t l = strlen(lineTokens[i][j]) - 1;
 				addLabel(lineTokens[i][j], l, codePointer);
+				continue;
 			}
+
 			if(strcmp(lineTokens[i][j], "mov") == 0) {
 				++j;
 				addU8(0xb8 + getRegister(lineTokens[i][j]));
@@ -201,10 +205,20 @@ int main(int argc, char** argv) {
 							addU8(*str);
 							++str;
 						}
+						++j;
+					} else {
+						addU8(hexTo8(lineTokens[i][j]));
+						++j;
 					}
-					addU8(hexTo8(lineTokens[i][j]));
-					++j;
 				}
+			} else if(strcmp(lineTokens[i][j], "jmp") == 0) {
+				++j;
+				addU8(0xe9);
+				addBackpatchRelative(lineTokens[i][j]+1, codePointer, codePointer-1);
+				addU32(0);
+			} else {
+				printf("unknown instruction \"%s\"\n", lineTokens[i][j]);
+				exit(1);
 			}
 		}
 	}
