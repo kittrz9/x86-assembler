@@ -6,7 +6,7 @@ entry:
 	mov eax #1
 	mov edi #1
 	mov esi str
-	mov edx #C
+	mov edx #c
 	syscall
 	mov eax #1
 	mov edi #1
@@ -14,14 +14,14 @@ entry:
 	mov edx #14
 	syscall
 	jmp asdf
-	db #AA #AA
+	db #aa #aa
 asdf:
-	mov eax #3C
+	mov eax #3c
 	mov edi #0
 	syscall
 
 aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa:
 str:
-	db "test string" #0A
+	db "test string" #a
 str2:
-	db "another test string" #0A
+	db "another test string" #a

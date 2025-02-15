@@ -46,20 +46,11 @@ uint32_t hexTo32(char* str) {
 	uint32_t returnVal = 0;
 	for(uint8_t i = 0; i < len; ++i) {
 		for(uint8_t j = 0; j < 0x10; ++j) {
-			if(hexLUT[j] == str[len-i-1]) {
-				returnVal |= j << i*4;
+			char c = str[len-i-1];
+			if(c >= 'a' && c <= 'z') {
+				c -= 'a'-'A';
 			}
-		}
-	}
-
-	return returnVal;
-}
-uint8_t hexTo8(char* str) {
-	size_t len = strlen(str);
-	uint8_t returnVal = 0;
-	for(uint8_t i = 0; i < len; ++i) {
-		for(uint8_t j = 0; j < 0x10; ++j) {
-			if(hexLUT[j] == str[len-i-1]) {
+			if(hexLUT[j] == c) {
 				returnVal |= j << i*4;
 			}
 		}

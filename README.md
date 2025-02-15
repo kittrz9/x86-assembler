@@ -1,5 +1,5 @@
 # x86 assembler
-a very basic x86 assembler that outputs an executable elf file for linux<br>
+a very basic x86 assembler that creates an executable elf file for linux<br>
 <br>
 it currently only supports the instructions `mov`, `jmp`, and `syscall`, and allows bytes and strings to be added directly with `db`<br>
 <br>
