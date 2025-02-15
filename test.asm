@@ -20,7 +20,6 @@ asdf:
 	mov edi #0
 	syscall
 
-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa:
 str:
 	db "test string" #a
 str2:

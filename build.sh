@@ -3,7 +3,7 @@
 set -xe
 
 CC=clang
-CFLAGS="-g -Wall -Wextra -Wpedantic"
+CFLAGS="-fsanitize=address -fsanitize=undefined -g -Wall -Wextra -Wpedantic"
 
 CFILES="$(find src/ -name "*.c")"
 
@@ -16,4 +16,4 @@ for f in $CFILES; do
 	$CC $CFLAGS -c $f -o $OBJNAME
 done
 
-$CC $OBJS -o build/asdf
+$CC $CFLAGS $OBJS -o build/asdf

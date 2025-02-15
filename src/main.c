@@ -9,19 +9,36 @@
 #include "backpatches.h"
 #include "tokens.h"
 
-#define MAX_PROGRAM_SIZE 2048
-uint8_t code[MAX_PROGRAM_SIZE];
+#define INIT_PROGRAM_SIZE 2048
+struct {
+	uint8_t* buffer;
+	size_t size;
+	uint64_t pointer;
+} code;
 
-uint64_t codePointer = 0;
+void codeBufferInit(void) {
+	code.buffer = malloc(INIT_PROGRAM_SIZE);
+	code.size = INIT_PROGRAM_SIZE;
+	code.pointer = 0;
+}
+
+void codeBufferRealloc(void) {
+	code.size *= 2;
+	code.buffer = realloc(code.buffer, code.size);
+}
 
 void addU8(uint8_t x) {
-	code[codePointer] = x;
-	++codePointer;
+	code.buffer[code.pointer] = x;
+	++code.pointer;
+	if(code.pointer >= code.size) {
+		codeBufferRealloc();
+	}
 }
 
 void addU32(uint32_t x) {
-	*(uint32_t*)&code[codePointer] = x;
-	codePointer += 4;
+	for(uint8_t i = 0; i < 4; ++i) {
+		addU8(x >> i*8);
+	}
 }
 
 int main(int argc, char** argv) {
@@ -39,19 +56,23 @@ int main(int argc, char** argv) {
 
 	char* fileBuffer = malloc(fileSize);
 	fread(fileBuffer, fileSize, 1, f);
-	token* t = tokenize(fileBuffer, fileSize);
+	token* tokens = tokenize(fileBuffer, fileSize);
+	token* t = tokens;
+
+	free(fileBuffer);
+
+	codeBufferInit();
 
 	while(t->type != TOKEN_END) {
-		//printf("type: %s\n", tokenNames[t->type]);
 		switch(t->type) {
-			case TOKEN_INSTRUCTION:
-				//printf("%s\n", instrNames[t->instr]);
+			case TOKEN_INSTRUCTION: {
 				switch(t->instr) {
-					case INSTR_SYSCALL:
+					case INSTR_SYSCALL: {
 						addU8(0x0f);
 						addU8(0x05);
 						break;
-					case INSTR_MOV:
+					}
+					case INSTR_MOV: {
 						++t;
 						if(t->type != TOKEN_REGISTER) {
 							printf("expected register\n");
@@ -60,7 +81,7 @@ int main(int argc, char** argv) {
 						addU8(0xb8 + t->reg);
 						++t;
 						if(t->type == TOKEN_ADDRESS) {
-							addBackpatch(t->labelName, codePointer);
+							addBackpatch(t->labelName, code.pointer);
 							addU32(0);
 						} else if(t->type == TOKEN_INT) {
 							addU32(t->intValue);
@@ -69,17 +90,19 @@ int main(int argc, char** argv) {
 							exit(1);
 						}
 						break;
-					case INSTR_JMP:
+					}
+					case INSTR_JMP: {
 						++t;
 						if(t->type != TOKEN_ADDRESS) {
 							printf("expected address\n");
 							exit(1);
 						}
 						addU8(0xe9);
-						addBackpatchRelative(t->labelName, codePointer, codePointer-1);
+						addBackpatchRelative(t->labelName, code.pointer, code.pointer-1);
 						addU32(0);
 						break;
-					case INSTR_DB:
+					}
+					case INSTR_DB: {
 						while(1) {
 							++t;
 							if(t->type == TOKEN_INT) {
@@ -94,36 +117,37 @@ int main(int argc, char** argv) {
 							}
 						}
 						break;
+					}
+					default: {
+						printf("invalid instruction\n");
+						exit(1);
+					}
 				}
 				break;
-			case TOKEN_LABEL:
-				// new label
+			}
+			case TOKEN_LABEL: {
 				uint8_t l = strlen(t->labelName) - 1;
-				addLabel(t->labelName, l, codePointer);
+				addLabel(t->labelName, l, code.pointer);
 				break;
-			case TOKEN_ADDRESS:
-				printf("%s\n", t->labelName);
-				break;
-			case TOKEN_INT:
-				printf("%i\n", t->intValue);
-				break;
-			case TOKEN_REGISTER:
-				printf("%s\n", regNames[t->reg]);
-				break;
-			case TOKEN_STRING:
-				printf("%s\n", t->string);
+			}
+			default: {
+				printf("unexpected token %s\n", tokenNames[t->type]);
+				exit(1);
+			}
 		}
 		++t;
 	}
 
-	for(size_t i = 0; i < codePointer; ++i) {
-		printf("%02X", code[i]);
+	free(tokens);
+
+	for(size_t i = 0; i < code.pointer; ++i) {
+		printf("%02X", code.buffer[i]);
 	}
 	printf("\n");
 
 	printLabels();
 
-	createElfFromCode("test.elf", code, codePointer); // codePointer works as length here
+	createElfFromCode("test.elf", code.buffer, code.pointer); // code pointer works as length here
 
 	return 0;
 }

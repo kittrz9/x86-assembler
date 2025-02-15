@@ -61,6 +61,7 @@ uint32_t hexTo32(char* str) {
 
 uint8_t endsWith(char* str, char c) {
 	uint8_t l = strlen(str);
+	if(l == 0) { return 0; }
 	return str[l-1] == c;
 }
 
