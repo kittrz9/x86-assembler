@@ -1,0 +1,195 @@
+#include "tokens.h"
+
+#include <stdio.h>
+#include <string.h>
+
+
+char* tokenNames[] = {
+	[TOKEN_INSTRUCTION] = "TOKEN_INSTRUCTION",
+	[TOKEN_LABEL] = "TOKEN_LABEL",
+	[TOKEN_ADDRESS] = "TOKEN_ADDRESS",
+	[TOKEN_INT] = "TOKEN_INT",
+	[TOKEN_REGISTER] = "TOKEN_REGISTER",
+	[TOKEN_STRING] = "TOKEN_STRING",
+	[TOKEN_END] = "TOKEN_END",
+};
+
+struct {
+	token* buffer;
+	size_t size;
+	size_t capacity;
+} tokensArray;
+
+#define INIT_TOKENS_ARRAY_SIZE 32
+void initTokensArray(void) {
+	tokensArray.buffer = malloc(sizeof(token) * INIT_TOKENS_ARRAY_SIZE);
+	tokensArray.size = 0;
+	tokensArray.capacity = INIT_TOKENS_ARRAY_SIZE;
+}
+
+void addToken(token t) {
+	tokensArray.buffer[tokensArray.size] = t;
+	++tokensArray.size;
+	if(tokensArray.size >= tokensArray.capacity) {
+		tokensArray.capacity *= 2;
+		tokensArray.buffer = realloc(tokensArray.buffer, sizeof(token) * tokensArray.capacity);
+	}
+}
+
+uint8_t isWhitespace(char c) {
+	return (c==' ')||(c=='\n')||(c=='\t')||(c=='\0');
+}
+
+char hexLUT[] = "0123456789ABCDEF";
+uint32_t hexTo32(char* str) {
+	size_t len = strlen(str);
+	uint32_t returnVal = 0;
+	for(uint8_t i = 0; i < len; ++i) {
+		for(uint8_t j = 0; j < 0x10; ++j) {
+			if(hexLUT[j] == str[len-i-1]) {
+				returnVal |= j << i*4;
+			}
+		}
+	}
+
+	return returnVal;
+}
+uint8_t hexTo8(char* str) {
+	size_t len = strlen(str);
+	uint8_t returnVal = 0;
+	for(uint8_t i = 0; i < len; ++i) {
+		for(uint8_t j = 0; j < 0x10; ++j) {
+			if(hexLUT[j] == str[len-i-1]) {
+				returnVal |= j << i*4;
+			}
+		}
+	}
+
+	return returnVal;
+}
+
+uint8_t endsWith(char* str, char c) {
+	uint8_t l = strlen(str);
+	return str[l-1] == c;
+}
+
+#define MAX_TOKEN_LEN 64
+void strAppend(char* str, char c) {
+	size_t l = strlen(str);
+	if(l >= MAX_TOKEN_LEN-1) {
+		printf("max token length exceeded\n");
+		exit(1);
+	}
+	str[l] = c;
+	str[l+1] = '\0';
+}
+
+char* validInstructions[] = {
+	"",
+	"mov",
+	"jmp",
+	"syscall",
+	"db",
+};
+
+uint8_t isValidInstruction(char* str) {
+	for(size_t i = 0; i < sizeof(validInstructions)/sizeof(validInstructions[0]); ++i) {
+		if(strcmp(validInstructions[i], str) == 0) {
+			return i;
+		}
+		printf("%s %s\n", validInstructions[i], str);
+	}
+	return 0;
+}
+
+
+char regStrs[REG_COUNT][4] = {
+	[REG_EAX] = "eax",
+	[REG_ECX] = "ecx",
+	[REG_EDX] = "edx",
+	[REG_EBX] = "ebx",
+	[REG_ESP] = "esp",
+	[REG_EBP] = "ebp",
+	[REG_ESI] = "esi",
+	[REG_EDI] = "edi",
+};
+
+enum x86Regs isValidRegister(char* str) {
+	for(size_t i = 0; i < sizeof(regStrs)/sizeof(regStrs[0]); ++i) {
+		if(strcmp(regStrs[i], str) == 0) {
+			return i;
+		}
+	}
+	return 0;
+}
+
+token* tokenize(char* str, size_t size) {
+	initTokensArray();
+	char tokenStr[MAX_TOKEN_LEN];
+	memset(tokenStr, 0, MAX_TOKEN_LEN);
+	token t;
+	for(size_t i = 0; i < size; ++i) {
+		char c = str[i];
+		if(c == ';') {
+			do {
+				++i;
+				c = str[i];
+			} while(c != '\n');
+		}
+		if(c == '"') {
+			printf("string!!!\n");
+			t.type = TOKEN_STRING;
+			t.string[0] = '\0';
+			++i;
+			c = str[i];
+			while(c != '"') {
+				strAppend(t.string, c);
+				++i;
+				c = str[i];
+			}
+			++i;
+			addToken(t);
+			continue;
+		}
+		if(isWhitespace(c)) {
+			printf("!%s!\n", tokenStr);
+			enum x86Regs r = isValidRegister(tokenStr);
+			if(r) {
+				printf("register!!!\n");
+				t.type = TOKEN_REGISTER;
+				t.reg = r;
+				addToken(t);
+			} else if(tokenStr[0] == '#') {
+				printf("number!!!\n");
+				t.type = TOKEN_INT;
+				t.intValue = hexTo32(tokenStr+1);
+				addToken(t);
+			} else if(endsWith(tokenStr, ':')) {
+				printf("label!!!\n");
+				t.type = TOKEN_LABEL;
+				strcpy(t.labelName, tokenStr);
+				addToken(t);
+			} else if(isValidInstruction(tokenStr)) {
+				printf("instruction!!!\n");
+				t.type = TOKEN_INSTRUCTION;
+				strcpy(t.instructionName, tokenStr);
+				addToken(t);
+			} else if(tokenStr[0] != '\0') { // treat any other string as a label address
+				printf("address!!!\n");
+				t.type = TOKEN_ADDRESS;
+				strcpy(t.labelName, tokenStr);
+				addToken(t);
+			}
+
+
+			tokenStr[0] = '\0';
+			continue;
+		} else {
+			strAppend(tokenStr, c);
+		}
+	}
+	t.type = TOKEN_END;
+	addToken(t);
+	return tokensArray.buffer;
+}
+

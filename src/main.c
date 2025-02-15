@@ -7,8 +7,9 @@
 #include "elf.h"
 #include "labels.h"
 #include "backpatches.h"
+#include "tokens.h"
 
-enum x86Regs {
+/*enum x86Regs {
 	REG_EAX = 0,
 	REG_ECX = 1,
 	REG_EDX = 2,
@@ -39,13 +40,12 @@ enum x86Regs getRegister(char* str) {
 	}
 	printf("unknown register \"%s\"\n", str);
 	exit(1);
-}
+}*/
 
-#define MAX_LINES 128
+/*#define MAX_LINES 128
 #define MAX_STR_LEN 128
 
 #define MAX_TOKENS 32
-#define MAX_TOKEN_LEN 8
 
 char lines[MAX_LINES][MAX_STR_LEN];
 
@@ -60,7 +60,7 @@ bool isWhitespace(char c) {
 		++c2;
 	}
 	return false;
-}
+}*/
 
 #define MAX_PROGRAM_SIZE 2048
 uint8_t code[MAX_PROGRAM_SIZE];
@@ -77,39 +77,6 @@ void addU32(uint32_t x) {
 	codePointer += 4;
 }
 
-char hexLUT[] = "0123456789ABCDEF";
-uint32_t hexTo32(char* str) {
-	size_t len = strlen(str);
-	uint32_t returnVal = 0;
-	for(uint8_t i = 0; i < len; ++i) {
-		for(uint8_t j = 0; j < 0x10; ++j) {
-			if(hexLUT[j] == str[len-i-1]) {
-				returnVal |= j << i*4;
-			}
-		}
-	}
-
-	return returnVal;
-}
-uint8_t hexTo8(char* str) {
-	size_t len = strlen(str);
-	uint8_t returnVal = 0;
-	for(uint8_t i = 0; i < len; ++i) {
-		for(uint8_t j = 0; j < 0x10; ++j) {
-			if(hexLUT[j] == str[len-i-1]) {
-				returnVal |= j << i*4;
-			}
-		}
-	}
-
-	return returnVal;
-}
-
-bool endsWith(char* str, char c) {
-	uint8_t l = strlen(str);
-	return str[l-1] == c;
-}
-
 int main(int argc, char** argv) {
 	if(argc != 2) {
 		return 1;
@@ -118,7 +85,39 @@ int main(int argc, char** argv) {
 	if(f == NULL) {
 		return 1;
 	}
-	uint8_t lineIndex = 0;
+
+	fseek(f, 0, SEEK_END);
+	size_t fileSize = ftell(f);
+	fseek(f, 0, SEEK_SET);
+	printf("%u\n", fileSize);
+
+	char* fileBuffer = malloc(fileSize);
+	fread(fileBuffer, fileSize, 1, f);
+	token* t = tokenize(fileBuffer, fileSize);
+
+	while(t->type != TOKEN_END) {
+		printf("type: %s\n", tokenNames[t->type]);
+		switch(t->type) {
+			case TOKEN_INSTRUCTION:
+				printf("%s\n", t->instructionName);
+				break;
+			case TOKEN_LABEL:
+			case TOKEN_ADDRESS:
+				printf("%s\n", t->labelName);
+				break;
+			case TOKEN_INT:
+				printf("%i\n", t->intValue);
+				break;
+			case TOKEN_REGISTER:
+				printf("%s\n", regStrs[t->reg]);
+				break;
+			case TOKEN_STRING:
+				printf("%s\n", t->string);
+		}
+		++t;
+	}
+
+	/*uint8_t lineIndex = 0;
 	for(uint8_t i = 0; i < MAX_LINES; ++i) {
 		char temp[MAX_STR_LEN];
 		if(fgets(temp, MAX_STR_LEN, f) == NULL) {
@@ -232,5 +231,5 @@ int main(int argc, char** argv) {
 
 	createElfFromCode("test.elf", code, codePointer); // codePointer works as length here
 
-	return 0;
+	return 0;*/
 }
