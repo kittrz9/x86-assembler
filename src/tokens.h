@@ -17,7 +17,6 @@ enum tokenType {
 extern char* tokenNames[];
 // should move this to a better file
 enum x86Regs {
-	REG_NULL, // to avoid returning 0 when checking the array of register names
 	REG_EAX,
 	REG_ECX,
 	REG_EDX,
@@ -27,15 +26,28 @@ enum x86Regs {
 	REG_ESI,
 	REG_EDI,
 	REG_COUNT,
+	REG_INVALID,
 };
-extern char regStrs[REG_COUNT][4];
+
+extern char regNames[REG_COUNT][4];
+
+enum x86Instr {
+	INSTR_MOV,
+	INSTR_JMP,
+	INSTR_SYSCALL,
+	INSTR_DB,
+	INSTR_COUNT,
+	INSTR_INVALID,
+};
+
+extern char* instrNames[];
 
 typedef struct {
 	enum tokenType type;
 	union {
 		uint32_t intValue;
 		enum x86Regs reg;
-		char instructionName[32]; // will eventually probably be an enum
+		enum x86Instr instr;
 		char labelName[32];
 		char string[32];
 	};

@@ -84,26 +84,24 @@ void strAppend(char* str, char c) {
 	str[l+1] = '\0';
 }
 
-char* validInstructions[] = {
-	"",
-	"mov",
-	"jmp",
-	"syscall",
-	"db",
+char* instrNames[] = {
+	[INSTR_MOV] = "mov",
+	[INSTR_JMP] = "jmp",
+	[INSTR_SYSCALL] = "syscall",
+	[INSTR_DB] = "db",
 };
 
 uint8_t isValidInstruction(char* str) {
-	for(size_t i = 0; i < sizeof(validInstructions)/sizeof(validInstructions[0]); ++i) {
-		if(strcmp(validInstructions[i], str) == 0) {
+	for(size_t i = 0; i < INSTR_COUNT; ++i) {
+		if(strcmp(instrNames[i], str) == 0) {
 			return i;
 		}
-		printf("%s %s\n", validInstructions[i], str);
 	}
-	return 0;
+	return INSTR_INVALID;
 }
 
 
-char regStrs[REG_COUNT][4] = {
+char regNames[REG_COUNT][4] = {
 	[REG_EAX] = "eax",
 	[REG_ECX] = "ecx",
 	[REG_EDX] = "edx",
@@ -115,12 +113,12 @@ char regStrs[REG_COUNT][4] = {
 };
 
 enum x86Regs isValidRegister(char* str) {
-	for(size_t i = 0; i < sizeof(regStrs)/sizeof(regStrs[0]); ++i) {
-		if(strcmp(regStrs[i], str) == 0) {
+	for(size_t i = 0; i < REG_COUNT; ++i) {
+		if(strcmp(regNames[i], str) == 0) {
 			return i;
 		}
 	}
-	return 0;
+	return REG_INVALID;
 }
 
 token* tokenize(char* str, size_t size) {
@@ -137,7 +135,6 @@ token* tokenize(char* str, size_t size) {
 			} while(c != '\n');
 		}
 		if(c == '"') {
-			printf("string!!!\n");
 			t.type = TOKEN_STRING;
 			t.string[0] = '\0';
 			++i;
@@ -152,30 +149,25 @@ token* tokenize(char* str, size_t size) {
 			continue;
 		}
 		if(isWhitespace(c)) {
-			printf("!%s!\n", tokenStr);
 			enum x86Regs r = isValidRegister(tokenStr);
-			if(r) {
-				printf("register!!!\n");
+			enum x86Instr instr = isValidInstruction(tokenStr);
+			if(r != REG_INVALID) {
 				t.type = TOKEN_REGISTER;
 				t.reg = r;
 				addToken(t);
+			} else if(instr != INSTR_INVALID) {
+				t.type = TOKEN_INSTRUCTION;
+				t.instr = instr;
+				addToken(t);
 			} else if(tokenStr[0] == '#') {
-				printf("number!!!\n");
 				t.type = TOKEN_INT;
 				t.intValue = hexTo32(tokenStr+1);
 				addToken(t);
 			} else if(endsWith(tokenStr, ':')) {
-				printf("label!!!\n");
 				t.type = TOKEN_LABEL;
 				strcpy(t.labelName, tokenStr);
 				addToken(t);
-			} else if(isValidInstruction(tokenStr)) {
-				printf("instruction!!!\n");
-				t.type = TOKEN_INSTRUCTION;
-				strcpy(t.instructionName, tokenStr);
-				addToken(t);
 			} else if(tokenStr[0] != '\0') { // treat any other string as a label address
-				printf("address!!!\n");
 				t.type = TOKEN_ADDRESS;
 				strcpy(t.labelName, tokenStr);
 				addToken(t);

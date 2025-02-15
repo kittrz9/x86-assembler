@@ -6,12 +6,12 @@ entry:
 	mov eax #1
 	mov edi #1
 	mov esi str
-	mov edx #6
+	mov edx #C
 	syscall
 	mov eax #1
 	mov edi #1
 	mov esi str2
-	mov edx #7
+	mov edx #14
 	syscall
 	jmp asdf
 	db #AA #AA
@@ -22,6 +22,6 @@ asdf:
 
 aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa:
 str:
-	db "luigi" #0A
+	db "test string" #0A
 str2:
-	db "luigi2" #0A
+	db "another test string" #0A
