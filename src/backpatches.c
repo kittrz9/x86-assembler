@@ -2,38 +2,56 @@
 
 #include <string.h>
 #include <stdio.h>
+#include <stdlib.h>
 
-#define MAX_BACKPATCHES 256
+#define INIT_BACKPATCH_BUFFER_SIZE 256
 
-struct backpatchStruct backpatches[MAX_BACKPATCHES];
-uint16_t backpatchPointer;
+struct {
+	struct backpatchStruct* buffer;
+	size_t capacity;
+	size_t size;
+} backpatches;
+
+void backpatchBufferRealloc(void) {
+	backpatches.capacity *= 2;
+	backpatches.buffer = realloc(backpatches.buffer, sizeof(struct labelStruct) * backpatches.capacity);
+}
+
+void backpatchBufferInit(void) {
+	backpatches.buffer = malloc(sizeof(struct labelStruct) * INIT_BACKPATCH_BUFFER_SIZE);
+	backpatches.capacity = INIT_BACKPATCH_BUFFER_SIZE;
+	backpatches.size = 0;
+}
 
 void addBackpatch(char* label, uint32_t patchAddr) {
-	strcpy(backpatches[backpatchPointer].labelName, label);
-	backpatches[backpatchPointer].patchAddr = patchAddr;
-	++backpatchPointer;
+	memset(backpatches.buffer[backpatches.size].labelName, 0, MAX_LABEL_LEN);
+	strcpy(backpatches.buffer[backpatches.size].labelName, label);
+	backpatches.buffer[backpatches.size].relative = false;
+	backpatches.buffer[backpatches.size].patchAddr = patchAddr;
+	++backpatches.size;
+	if(backpatches.size >= backpatches.capacity) {
+		backpatchBufferRealloc();
+	}
 }
 
 void addBackpatchRelative(char* label, uint32_t patchAddr, uint32_t relativeFrom) {
-	strcpy(backpatches[backpatchPointer].labelName, label);
-	backpatches[backpatchPointer].patchAddr = patchAddr;
-	backpatches[backpatchPointer].relative = true;
-	backpatches[backpatchPointer].relativeFrom = relativeFrom;
-	++backpatchPointer;
+	strcpy(backpatches.buffer[backpatches.size].labelName, label);
+	backpatches.buffer[backpatches.size].patchAddr = patchAddr;
+	backpatches.buffer[backpatches.size].relative = true;
+	backpatches.buffer[backpatches.size].relativeFrom = relativeFrom;
+	++backpatches.size;
 }
 
 void resolveBackpatches(uint8_t* code, uint32_t virtAddr) {
-	uint16_t b = 0;
-	while(backpatches[b].labelName[0] != '\0') {
-		printf("%s\n", backpatches[b].labelName);
-		if(backpatches[b].relative) {
-			int32_t relative = findLabelAddr(backpatches[b].labelName) - backpatches[b].relativeFrom - 5;
+	for(size_t i = 0; i < backpatches.size; ++i) {
+		printf("%s\n", backpatches.buffer[i].labelName);
+		if(backpatches.buffer[i].relative) {
+			int32_t relative = findLabelAddr(backpatches.buffer[i].labelName) - backpatches.buffer[i].relativeFrom - 5;
 			printf("%i\n", relative);
-			memcpy(code+backpatches[b].patchAddr, &relative, sizeof(uint32_t));
+			memcpy(code+backpatches.buffer[i].patchAddr, &relative, sizeof(uint32_t));
 		} else {
-			uint32_t newAddr = findLabelAddr(backpatches[b].labelName) + virtAddr;
-			memcpy(code+backpatches[b].patchAddr, &newAddr, sizeof(uint32_t));
+			uint32_t newAddr = findLabelAddr(backpatches.buffer[i].labelName) + virtAddr;
+			memcpy(code+backpatches.buffer[i].patchAddr, &newAddr, sizeof(uint32_t));
 		}
-		++b;
 	}
 }

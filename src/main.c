@@ -9,28 +9,28 @@
 #include "backpatches.h"
 #include "tokens.h"
 
-#define INIT_PROGRAM_SIZE 2048
+#define INIT_PROGRAM_CAPACITY 2048
 struct {
 	uint8_t* buffer;
-	size_t size;
-	uint64_t pointer;
+	size_t capacity;
+	uint64_t size;
 } code;
 
 void codeBufferInit(void) {
-	code.buffer = malloc(INIT_PROGRAM_SIZE);
-	code.size = INIT_PROGRAM_SIZE;
-	code.pointer = 0;
+	code.buffer = malloc(INIT_PROGRAM_CAPACITY);
+	code.capacity = INIT_PROGRAM_CAPACITY;
+	code.size = 0;
 }
 
 void codeBufferRealloc(void) {
-	code.size *= 2;
-	code.buffer = realloc(code.buffer, code.size);
+	code.capacity *= 2;
+	code.buffer = realloc(code.buffer, code.capacity);
 }
 
 void addU8(uint8_t x) {
-	code.buffer[code.pointer] = x;
-	++code.pointer;
-	if(code.pointer >= code.size) {
+	code.buffer[code.size] = x;
+	++code.size;
+	if(code.size >= code.capacity) {
 		codeBufferRealloc();
 	}
 }
@@ -62,6 +62,8 @@ int main(int argc, char** argv) {
 	free(fileBuffer);
 
 	codeBufferInit();
+	labelsBufferInit();
+	backpatchBufferInit();
 
 	while(t->type != TOKEN_END) {
 		switch(t->type) {
@@ -81,7 +83,7 @@ int main(int argc, char** argv) {
 						addU8(0xb8 + t->reg);
 						++t;
 						if(t->type == TOKEN_ADDRESS) {
-							addBackpatch(t->labelName, code.pointer);
+							addBackpatch(t->labelName, code.size);
 							addU32(0);
 						} else if(t->type == TOKEN_INT) {
 							addU32(t->intValue);
@@ -98,7 +100,7 @@ int main(int argc, char** argv) {
 							exit(1);
 						}
 						addU8(0xe9);
-						addBackpatchRelative(t->labelName, code.pointer, code.pointer-1);
+						addBackpatchRelative(t->labelName, code.size, code.size-1);
 						addU32(0);
 						break;
 					}
@@ -127,7 +129,7 @@ int main(int argc, char** argv) {
 			}
 			case TOKEN_LABEL: {
 				uint8_t l = strlen(t->labelName) - 1;
-				addLabel(t->labelName, l, code.pointer);
+				addLabel(t->labelName, l, code.size);
 				break;
 			}
 			default: {
@@ -140,14 +142,14 @@ int main(int argc, char** argv) {
 
 	free(tokens);
 
-	for(size_t i = 0; i < code.pointer; ++i) {
+	for(size_t i = 0; i < code.size; ++i) {
 		printf("%02X", code.buffer[i]);
 	}
 	printf("\n");
 
 	printLabels();
 
-	createElfFromCode("test.elf", code.buffer, code.pointer); // code pointer works as length here
+	createElfFromCode("test.elf", code.buffer, code.size);
 
 	return 0;
 }

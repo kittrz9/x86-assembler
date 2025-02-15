@@ -4,31 +4,47 @@
 #include <string.h>
 #include <stdlib.h>
 
-struct labelStruct labels[MAX_LABELS];
-uint8_t labelPointer;
+#define INIT_LABEL_BUFFER_SIZE 64
+
+struct {
+	struct labelStruct* buffer;
+	size_t capacity;
+	size_t size;
+} labels;
+
+void labelsBufferRealloc(void) {
+	labels.capacity *= 2;
+	labels.buffer = realloc(labels.buffer, sizeof(struct labelStruct) * labels.capacity);
+}
+
+void labelsBufferInit(void) {
+	labels.buffer = malloc(sizeof(struct labelStruct) * INIT_LABEL_BUFFER_SIZE);
+	labels.capacity = INIT_LABEL_BUFFER_SIZE;
+	labels.size = 0;
+}
 
 void addLabel(char* labelName, uint8_t labelLen, uint64_t address) {
-	strncpy(labels[labelPointer].name, labelName, labelLen);
-	labels[labelPointer].address = address;
-	++labelPointer;
+	memset(labels.buffer[labels.size].name, 0, MAX_LABEL_LEN);
+	strncpy(labels.buffer[labels.size].name, labelName, labelLen);
+	labels.buffer[labels.size].address = address;
+	++labels.size;
+	if(labels.size >= labels.capacity) {
+		labelsBufferRealloc();
+	}
 }
 
 uint32_t findLabelAddr(char* str) {
-	uint8_t l = 0;
-	while(labels[l].name[0] != '\0') {
-		if(strcmp(labels[l].name, str) == 0) {
-			return labels[l].address;
+	for(size_t i = 0; i < labels.size; ++i) {
+		if(strcmp(labels.buffer[i].name, str) == 0) {
+			return labels.buffer[i].address;
 		}
-		++l;
 	}
 	printf("could not find label \"%s\"\n", str);
 	exit(1);
 }
 
 void printLabels(void) {
-	uint8_t l = 0;
-	while(labels[l].name[0] != '\0') {
-		printf("label %s: %lu\n", labels[l].name, labels[l].address);
-		++l;
+	for(size_t i = 0; i < labels.size; ++i) {
+		printf("label %s: %lu\n", labels.buffer[i].name, labels.buffer[i].address);
 	}
 }

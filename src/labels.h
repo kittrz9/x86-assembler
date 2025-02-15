@@ -11,6 +11,7 @@ struct labelStruct {
 	uint64_t address;
 };
 
+void labelsBufferInit(void);
 void addLabel(char* labelName, uint8_t labelLen, uint64_t address);
 uint32_t findLabelAddr(char* str);
 void printLabels(void);
