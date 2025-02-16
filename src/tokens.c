@@ -3,7 +3,6 @@
 #include <stdio.h>
 #include <string.h>
 
-
 char* tokenNames[] = {
 	[TOKEN_INSTRUCTION] = "TOKEN_INSTRUCTION",
 	[TOKEN_LABEL] = "TOKEN_LABEL",
@@ -14,28 +13,6 @@ char* tokenNames[] = {
 	[TOKEN_DEREFERENCE] = "TOKEN_DEREFERENCE",
 	[TOKEN_END] = "TOKEN_END",
 };
-
-struct {
-	token* buffer;
-	size_t size;
-	size_t capacity;
-} tokensArray;
-
-#define INIT_TOKENS_ARRAY_SIZE 32
-void initTokensArray(void) {
-	tokensArray.buffer = malloc(sizeof(token) * INIT_TOKENS_ARRAY_SIZE);
-	tokensArray.size = 0;
-	tokensArray.capacity = INIT_TOKENS_ARRAY_SIZE;
-}
-
-void addToken(token t) {
-	tokensArray.buffer[tokensArray.size] = t;
-	++tokensArray.size;
-	if(tokensArray.size >= tokensArray.capacity) {
-		tokensArray.capacity *= 2;
-		tokensArray.buffer = realloc(tokensArray.buffer, sizeof(token) * tokensArray.capacity);
-	}
-}
 
 uint8_t isWhitespace(char c) {
 	return (c==' ')||(c=='\n')||(c=='\t')||(c=='\0');
@@ -114,8 +91,7 @@ enum x86Regs isValidRegister(char* str) {
 	return REG_INVALID;
 }
 
-token* tokenize(char* str, size_t size) {
-	initTokensArray();
+void tokenize(dynamicArray* tokens, char* str, size_t size) {
 	char tokenStr[MAX_TOKEN_LEN];
 	memset(tokenStr, 0, MAX_TOKEN_LEN);
 	token t;
@@ -138,12 +114,12 @@ token* tokenize(char* str, size_t size) {
 				c = str[i];
 			}
 			++i;
-			addToken(t);
+			dynamicArrayAdd(tokens, &t);
 			continue;
 		}
 		if(c == '*') {
 			t.type = TOKEN_DEREFERENCE;
-			addToken(t);
+			dynamicArrayAdd(tokens, &t);
 			continue;
 		}
 		if(isWhitespace(c)) {
@@ -152,23 +128,23 @@ token* tokenize(char* str, size_t size) {
 			if(r != REG_INVALID) {
 				t.type = TOKEN_REGISTER;
 				t.reg = r;
-				addToken(t);
+				dynamicArrayAdd(tokens, &t);
 			} else if(instr != INSTR_INVALID) {
 				t.type = TOKEN_INSTRUCTION;
 				t.instr = instr;
-				addToken(t);
+				dynamicArrayAdd(tokens, &t);
 			} else if(tokenStr[0] == '#') {
 				t.type = TOKEN_INT;
 				t.intValue = hexTo32(tokenStr+1);
-				addToken(t);
+				dynamicArrayAdd(tokens, &t);
 			} else if(endsWith(tokenStr, ':')) {
 				t.type = TOKEN_LABEL;
 				strcpy(t.labelName, tokenStr);
-				addToken(t);
+				dynamicArrayAdd(tokens, &t);
 			} else if(tokenStr[0] != '\0') { // treat any other string as a label address
 				t.type = TOKEN_ADDRESS;
 				strcpy(t.labelName, tokenStr);
-				addToken(t);
+				dynamicArrayAdd(tokens, &t);
 			}
 
 
@@ -179,7 +155,7 @@ token* tokenize(char* str, size_t size) {
 		}
 	}
 	t.type = TOKEN_END;
-	addToken(t);
-	return tokensArray.buffer;
+	dynamicArrayAdd(tokens, &t);
+	return;
 }
 

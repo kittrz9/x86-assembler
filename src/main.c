@@ -35,8 +35,9 @@ int main(int argc, char** argv) {
 
 	char* fileBuffer = malloc(fileSize);
 	fread(fileBuffer, fileSize, 1, f);
-	token* tokens = tokenize(fileBuffer, fileSize);
-	token* t = tokens;
+	dynamicArray* tokens = dynamicArrayCreate(sizeof(token));
+	tokenize(tokens, fileBuffer, fileSize);
+	token* t = tokens->buffer;
 
 	free(fileBuffer);
 
@@ -158,8 +159,6 @@ int main(int argc, char** argv) {
 		++t;
 	}
 
-	free(tokens);
-
 	for(size_t i = 0; i < code->size; ++i) {
 		printf("%02X", *(uint8_t*)dynamicArrayIndex(code, i));
 	}
@@ -172,6 +171,7 @@ int main(int argc, char** argv) {
 	dynamicArrayDestroy(code);
 	dynamicArrayDestroy(labels);
 	dynamicArrayDestroy(backpatches);
+	dynamicArrayDestroy(tokens);
 
 	return 0;
 }

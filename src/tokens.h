@@ -4,6 +4,8 @@
 #include <stdint.h>
 #include <stdlib.h>
 
+#include "dynamicArray.h"
+
 enum tokenType {
 	TOKEN_INSTRUCTION,
 	TOKEN_LABEL,
@@ -54,6 +56,6 @@ typedef struct {
 	};
 } token;
 
-token* tokenize(char* str, size_t size);
+void tokenize(dynamicArray* tokens, char* str, size_t size);
 
 #endif // TOKENS_H
