@@ -11,6 +11,7 @@ char* tokenNames[] = {
 	[TOKEN_INT] = "TOKEN_INT",
 	[TOKEN_REGISTER] = "TOKEN_REGISTER",
 	[TOKEN_STRING] = "TOKEN_STRING",
+	[TOKEN_DEREFERENCE] = "TOKEN_DEREFERENCE",
 	[TOKEN_END] = "TOKEN_END",
 };
 
@@ -83,7 +84,7 @@ char* instrNames[] = {
 	[INSTR_DB] = "db",
 };
 
-uint8_t isValidInstruction(char* str) {
+enum x86Instr isValidInstruction(char* str) {
 	for(size_t i = 0; i < INSTR_COUNT; ++i) {
 		if(strcmp(instrNames[i], str) == 0) {
 			return i;
@@ -137,6 +138,11 @@ token* tokenize(char* str, size_t size) {
 				c = str[i];
 			}
 			++i;
+			addToken(t);
+			continue;
+		}
+		if(c == '*') {
+			t.type = TOKEN_DEREFERENCE;
 			addToken(t);
 			continue;
 		}

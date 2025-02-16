@@ -76,11 +76,22 @@ int main(int argc, char** argv) {
 					}
 					case INSTR_MOV: {
 						++t;
-						if(t->type != TOKEN_REGISTER) {
-							printf("expected register\n");
-							exit(1);
+						if(t->type == TOKEN_DEREFERENCE) {
+							++t;
+							if(t->type != TOKEN_REGISTER) {
+								printf("expected register\n");
+								exit(1);
+							}
+							addU8(0x67); // probably not necessary, but the address size override prefix makes it use eax instead of rax I think (according to objdump)
+							addU8(0xc7);
+							addU8(t->reg);
+						} else {
+							if(t->type != TOKEN_REGISTER) {
+								printf("expected register\n");
+								exit(1);
+							}
+							addU8(0xb8 + t->reg);
 						}
-						addU8(0xb8 + t->reg);
 						++t;
 						if(t->type == TOKEN_ADDRESS) {
 							addBackpatch(t->labelName, code.size);

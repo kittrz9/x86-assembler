@@ -3,7 +3,7 @@
 set -xe
 
 CC=clang
-CFLAGS="-fsanitize=address -fsanitize=undefined -g -Wall -Wextra -Wpedantic"
+CFLAGS="-Wall -Wextra -Wpedantic"
 
 CFILES="$(find src/ -name "*.c")"
 
