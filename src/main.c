@@ -82,15 +82,29 @@ int main(int argc, char** argv) {
 								printf("expected register\n");
 								exit(1);
 							}
-							addU8(0x67); // probably not necessary, but the address size override prefix makes it use eax instead of rax I think (according to objdump)
-							addU8(0xc7);
-							addU8(t->reg);
+							if((t+1)->type == TOKEN_REGISTER) { // this is a mess
+								++t;
+								addU8(0x89);
+								addU8(t->reg * 8);
+								break;
+							} else {
+								addU8(0x67); // probably not necessary, but the address size override prefix makes it use eax instead of rax I think (according to objdump)
+								addU8(0xc7);
+								addU8(t->reg);
+							}
 						} else {
 							if(t->type != TOKEN_REGISTER) {
 								printf("expected register\n");
 								exit(1);
 							}
-							addU8(0xb8 + t->reg);
+							if((t+1)->type == TOKEN_REGISTER) {
+								++t;
+								addU8(0x89);
+								addU8(0xc0 + t->reg * 8);
+								break;
+							} else {
+								addU8(0xb8 + t->reg);
+							}
 						}
 						++t;
 						if(t->type == TOKEN_ADDRESS) {
