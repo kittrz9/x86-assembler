@@ -3,7 +3,9 @@
 
 #include <stdint.h>
 
-void createElfFromCode(char* filePath, uint8_t* code, uint64_t codeSize);
+#include "dynamicArray.h"
+
+void createElfFromCode(char* filePath, dynamicArray* code, dynamicArray* labels, dynamicArray* backpatches);
 
 // only going to deal with 64 bit for now
 // https://en.wikipedia.org/wiki/Executable_and_Linkable_Format

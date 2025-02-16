@@ -11,7 +11,7 @@ char sectionNames[] = "\0.text\0.shstrtab\0";
 
 uint32_t entryPoint;
 
-void createElfFromCode(char* filePath, uint8_t* code, uint64_t codeSize) {
+void createElfFromCode(char* filePath, dynamicArray* code, dynamicArray* labels, dynamicArray* backpatches) {
 	uint64_t codeOffset = sizeof(struct elfHeaderStruct) + sizeof(struct programHeaderStruct);
 	struct programHeaderStruct pHeaders[] = {
 		{
@@ -20,8 +20,8 @@ void createElfFromCode(char* filePath, uint8_t* code, uint64_t codeSize) {
 			.offset = codeOffset,
 			.virtAddr = SECTION_ADDR + codeOffset,
 			.physAddr = SECTION_ADDR + codeOffset,
-			.fileSize = codeSize,
-			.memSize = codeSize
+			.fileSize = code->size,
+			.memSize = code->size
 		}
 	};
 
@@ -37,18 +37,18 @@ void createElfFromCode(char* filePath, uint8_t* code, uint64_t codeSize) {
 			.flags = 2 | 4, // SHF_ALLOC | SHF_EXECINSTR
 			.fileOffset = codeOffset,
 			.virtAddr = SECTION_ADDR + codeOffset,
-			.size = codeSize,
+			.size = code->size,
 			.link = 0,
 			.info = 0,
 			.addrAlign = 0,
-			.entSize = codeSize,
+			.entSize = code->size,
 		},
 		// section name section
 		{
 			.nameOffset = 7,
 			.type = 3, // SHT_STRTAB
 			.flags = 0,
-			.fileOffset = codeOffset + codeSize,
+			.fileOffset = codeOffset + code->size,
 			.virtAddr = 0,
 			.size = sizeof(sectionNames),
 			.link = 0,
@@ -58,7 +58,7 @@ void createElfFromCode(char* filePath, uint8_t* code, uint64_t codeSize) {
 		},
 	};
 
-	entryPoint = findLabelAddr("entry");
+	entryPoint = findLabelAddr(labels, "entry");
 
 	struct elfHeaderStruct elfHeader = {
 		.magic = "\x7F""ELF", // have to concatenate like this because of funny hex string shenanigans
@@ -73,7 +73,7 @@ void createElfFromCode(char* filePath, uint8_t* code, uint64_t codeSize) {
 		.ver2 = 1,
 		.entryPoint = sHeaders[1].virtAddr + entryPoint,
 		.programHeaderOffset = sizeof(struct elfHeaderStruct),
-		.sectionHeaderOffset = sizeof(struct elfHeaderStruct) + sizeof(pHeaders) + codeSize + sizeof(sectionNames),
+		.sectionHeaderOffset = sizeof(struct elfHeaderStruct) + sizeof(pHeaders) + code->size + sizeof(sectionNames),
 		.flags = 0,
 		.headerSize = sizeof(struct elfHeaderStruct),
 		.programHeaderSize = sizeof(struct programHeaderStruct),
@@ -83,13 +83,13 @@ void createElfFromCode(char* filePath, uint8_t* code, uint64_t codeSize) {
 		.sectionNamesIndex = 2,
 	};
 
-	resolveBackpatches(code, sHeaders[1].virtAddr);
+	resolveBackpatches(backpatches, labels, code->buffer, sHeaders[1].virtAddr);
 
 	FILE* f = fopen(filePath, "wb");
 
 	fwrite(&elfHeader, sizeof(elfHeader), 1, f);
 	fwrite(&pHeaders, sizeof(pHeaders), 1, f);
-	fwrite(code, codeSize, 1, f);
+	fwrite(code->buffer, code->size, 1, f);
 	fwrite(&sectionNames, sizeof(sectionNames), 1, f);
 	fwrite(&sHeaders, sizeof(sHeaders), 1, f);
 

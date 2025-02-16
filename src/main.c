@@ -8,36 +8,15 @@
 #include "labels.h"
 #include "backpatches.h"
 #include "tokens.h"
+#include "dynamicArray.h"
 
-#define INIT_PROGRAM_CAPACITY 2048
-struct {
-	uint8_t* buffer;
-	size_t capacity;
-	uint64_t size;
-} code;
-
-void codeBufferInit(void) {
-	code.buffer = malloc(INIT_PROGRAM_CAPACITY);
-	code.capacity = INIT_PROGRAM_CAPACITY;
-	code.size = 0;
+void addU8(dynamicArray* code, uint8_t x) {
+	dynamicArrayAdd(code, &x);
 }
 
-void codeBufferRealloc(void) {
-	code.capacity *= 2;
-	code.buffer = realloc(code.buffer, code.capacity);
-}
-
-void addU8(uint8_t x) {
-	code.buffer[code.size] = x;
-	++code.size;
-	if(code.size >= code.capacity) {
-		codeBufferRealloc();
-	}
-}
-
-void addU32(uint32_t x) {
+void addU32(dynamicArray* code, uint32_t x) {
 	for(uint8_t i = 0; i < 4; ++i) {
-		addU8(x >> i*8);
+		addU8(code, x >> i*8);
 	}
 }
 
@@ -61,17 +40,17 @@ int main(int argc, char** argv) {
 
 	free(fileBuffer);
 
-	codeBufferInit();
-	labelsBufferInit();
-	backpatchBufferInit();
+	dynamicArray* code = dynamicArrayCreate(1);
+	dynamicArray* labels = dynamicArrayCreate(sizeof(struct labelStruct));
+	dynamicArray* backpatches = dynamicArrayCreate(sizeof(struct backpatchStruct));
 
 	while(t->type != TOKEN_END) {
 		switch(t->type) {
 			case TOKEN_INSTRUCTION: {
 				switch(t->instr) {
 					case INSTR_SYSCALL: {
-						addU8(0x0f);
-						addU8(0x05);
+						addU8(code, 0x0f);
+						addU8(code, 0x05);
 						break;
 					}
 					case INSTR_MOV: {
@@ -84,13 +63,13 @@ int main(int argc, char** argv) {
 							}
 							if((t+1)->type == TOKEN_REGISTER) { // this is a mess
 								++t;
-								addU8(0x89);
-								addU8(t->reg * 8);
+								addU8(code, 0x89);
+								addU8(code, t->reg * 8);
 								break;
 							} else {
-								addU8(0x67); // probably not necessary, but the address size override prefix makes it use eax instead of rax I think (according to objdump)
-								addU8(0xc7);
-								addU8(t->reg);
+								addU8(code, 0x67); // probably not necessary, but the address size override prefix makes it use eax instead of rax I think (according to objdump)
+								addU8(code, 0xc7);
+								addU8(code, t->reg);
 							}
 						} else {
 							if(t->type != TOKEN_REGISTER) {
@@ -99,19 +78,24 @@ int main(int argc, char** argv) {
 							}
 							if((t+1)->type == TOKEN_REGISTER) {
 								++t;
-								addU8(0x89);
-								addU8(0xc0 + t->reg * 8);
+								addU8(code, 0x89);
+								addU8(code, 0xc0 + t->reg * 8);
 								break;
 							} else {
-								addU8(0xb8 + t->reg);
+								addU8(code, 0xb8 + t->reg);
 							}
 						}
 						++t;
 						if(t->type == TOKEN_ADDRESS) {
-							addBackpatch(t->labelName, code.size);
-							addU32(0);
+							struct backpatchStruct b;
+							b.relative = false;
+							b.patchAddr = code->size;
+							strncpy(b.labelName, t->labelName, MAX_LABEL_LEN);
+							dynamicArrayAdd(backpatches, &b);
+							//addBackpatch(backpatches, t->labelName, code->size);
+							addU32(code, 0);
 						} else if(t->type == TOKEN_INT) {
-							addU32(t->intValue);
+							addU32(code, t->intValue);
 						} else {
 							printf("expected address or int\n");
 							exit(1);
@@ -124,19 +108,25 @@ int main(int argc, char** argv) {
 							printf("expected address\n");
 							exit(1);
 						}
-						addU8(0xe9);
-						addBackpatchRelative(t->labelName, code.size, code.size-1);
-						addU32(0);
+						addU8(code, 0xe9);
+						struct backpatchStruct b;
+						b.relative = true;
+						b.relativeFrom = code->size-1;
+						b.patchAddr = code->size;
+						strncpy(b.labelName, t->labelName, MAX_LABEL_LEN);
+						dynamicArrayAdd(backpatches, &b);
+						//addBackpatchRelative(backpatches, t->labelName, code->size, code->size-1);
+						addU32(code, 0);
 						break;
 					}
 					case INSTR_DB: {
 						while(1) {
 							++t;
 							if(t->type == TOKEN_INT) {
-								addU8(t->intValue);
+								addU8(code, t->intValue);
 							} else if(t->type == TOKEN_STRING) {
 								for(size_t i = 0; i < strlen(t->string); ++i) {
-									addU8(t->string[i]);
+									addU8(code, t->string[i]);
 								}
 							} else {
 								--t;
@@ -153,8 +143,11 @@ int main(int argc, char** argv) {
 				break;
 			}
 			case TOKEN_LABEL: {
-				uint8_t l = strlen(t->labelName) - 1;
-				addLabel(t->labelName, l, code.size);
+				struct labelStruct l;
+				l.address = code->size;
+				strncpy(l.name, t->labelName, strlen(t->labelName)-1); // removes the : at the end
+				l.name[strlen(t->labelName)-1] = '\0';
+				dynamicArrayAdd(labels, &l);
 				break;
 			}
 			default: {
@@ -167,14 +160,18 @@ int main(int argc, char** argv) {
 
 	free(tokens);
 
-	for(size_t i = 0; i < code.size; ++i) {
-		printf("%02X", code.buffer[i]);
+	for(size_t i = 0; i < code->size; ++i) {
+		printf("%02X", *(uint8_t*)dynamicArrayIndex(code, i));
 	}
 	printf("\n");
 
-	printLabels();
+	printLabels(labels);
 
-	createElfFromCode("test.elf", code.buffer, code.size);
+	createElfFromCode("test.elf", code, labels, backpatches);
+
+	dynamicArrayDestroy(code);
+	dynamicArrayDestroy(labels);
+	dynamicArrayDestroy(backpatches);
 
 	return 0;
 }
