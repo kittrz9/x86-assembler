@@ -82,6 +82,17 @@ int main(int argc, char** argv) {
 								addU8(code, 0x89);
 								addU8(code, 0xc0 + t->reg * 8);
 								break;
+							} else if((t+1)->type == TOKEN_DEREFERENCE) {
+								uint8_t dst = t->reg * 8;
+								++t;
+								++t;
+								if(t->type != TOKEN_REGISTER) {
+									printf("expected register got %s\n", tokenNames[t->type]);
+									exit(1);
+								}
+								addU8(code, 0x8b);
+								addU8(code, t->reg + dst);
+								break;
 							} else {
 								addU8(code, 0xb8 + t->reg);
 							}
