@@ -10,6 +10,7 @@ entry:
 	syscall
 	mov eax str
 	mov ebx *eax
+	add ebx #1
 	mov *eax ebx
 	; I should eventually add a way to write to the memory address a register points to with a specific size instead of just always writing 4 bytes
 	; idk if I'll just do what nasm does or try to devise my own weird notation

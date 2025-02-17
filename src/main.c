@@ -131,6 +131,18 @@ int main(int argc, char** argv) {
 						addU32(code, 0);
 						break;
 					}
+					case INSTR_ADD: {
+						++t;
+						if(t->type != TOKEN_REGISTER) {
+							printf("expected register got %s\n", tokenNames[t->type]);
+							exit(1);
+						}
+						addU8(code, 0x81);
+						addU8(code, 0xc0 + t->reg);
+						++t;
+						addU32(code, t->intValue);
+						break;
+					}
 					case INSTR_DB: {
 						while(1) {
 							++t;
