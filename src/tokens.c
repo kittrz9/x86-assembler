@@ -96,13 +96,18 @@ void tokenize(dynamicArray* tokens, char* str, size_t size) {
 	char tokenStr[MAX_TOKEN_LEN];
 	memset(tokenStr, 0, MAX_TOKEN_LEN);
 	token t;
+	uint32_t lineNum = 1;
 	for(size_t i = 0; i < size; ++i) {
+		t.lineNum = lineNum;
 		char c = str[i];
 		if(c == ';') {
 			do {
 				++i;
 				c = str[i];
 			} while(c != '\n');
+		}
+		if(c == '\n') {
+			++lineNum;
 		}
 		if(c == '"') {
 			t.type = TOKEN_STRING;

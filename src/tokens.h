@@ -48,6 +48,7 @@ extern char* instrNames[];
 
 typedef struct {
 	enum tokenType type;
+	uint32_t lineNum;
 	union {
 		uint32_t intValue;
 		enum x86Regs reg;

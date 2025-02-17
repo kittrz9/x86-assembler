@@ -20,6 +20,20 @@ void addU32(dynamicArray* code, uint32_t x) {
 	}
 }
 
+void lineError(char* str, uint32_t lineNum) {
+	printf("line %i: %s\n", lineNum, str);
+	exit(1);
+}
+
+void expect(enum tokenType expectedToken, token* newToken) {
+	if(newToken->type != expectedToken) {
+		char str[64];
+		snprintf(str, 64, "expected %s, got %s", tokenNames[expectedToken], tokenNames[newToken->type]);
+		lineError(str, newToken->lineNum);
+	}
+	return;
+}
+
 int main(int argc, char** argv) {
 	if(argc != 2) {
 		return 1;
@@ -58,10 +72,7 @@ int main(int argc, char** argv) {
 						++t;
 						if(t->type == TOKEN_DEREFERENCE) {
 							++t;
-							if(t->type != TOKEN_REGISTER) {
-								printf("expected register\n");
-								exit(1);
-							}
+							expect(TOKEN_REGISTER, t);
 							if((t+1)->type == TOKEN_REGISTER) { // this is a mess
 								++t;
 								addU8(code, 0x89);
@@ -73,10 +84,7 @@ int main(int argc, char** argv) {
 								addU8(code, t->reg);
 							}
 						} else {
-							if(t->type != TOKEN_REGISTER) {
-								printf("expected register\n");
-								exit(1);
-							}
+							expect(TOKEN_REGISTER, t);
 							if((t+1)->type == TOKEN_REGISTER) {
 								++t;
 								addU8(code, 0x89);
@@ -86,10 +94,7 @@ int main(int argc, char** argv) {
 								uint8_t dst = t->reg * 8;
 								++t;
 								++t;
-								if(t->type != TOKEN_REGISTER) {
-									printf("expected register got %s\n", tokenNames[t->type]);
-									exit(1);
-								}
+								expect(TOKEN_REGISTER, t);
 								addU8(code, 0x8b);
 								addU8(code, t->reg + dst);
 								break;
@@ -109,17 +114,14 @@ int main(int argc, char** argv) {
 						} else if(t->type == TOKEN_INT) {
 							addU32(code, t->intValue);
 						} else {
-							printf("expected address or int\n");
+							lineError("expected address or int", t->lineNum);
 							exit(1);
 						}
 						break;
 					}
 					case INSTR_JMP: {
 						++t;
-						if(t->type != TOKEN_ADDRESS) {
-							printf("expected address\n");
-							exit(1);
-						}
+						expect(TOKEN_ADDRESS, t);
 						addU8(code, 0xe9);
 						struct backpatchStruct b;
 						b.relative = true;
@@ -133,10 +135,7 @@ int main(int argc, char** argv) {
 					}
 					case INSTR_ADD: {
 						++t;
-						if(t->type != TOKEN_REGISTER) {
-							printf("expected register got %s\n", tokenNames[t->type]);
-							exit(1);
-						}
+						expect(TOKEN_REGISTER, t);
 						addU8(code, 0x81);
 						addU8(code, 0xc0 + t->reg);
 						++t;
@@ -160,7 +159,7 @@ int main(int argc, char** argv) {
 						break;
 					}
 					default: {
-						printf("invalid instruction\n");
+						lineError("invalid instruction", t->lineNum);
 						exit(1);
 					}
 				}
@@ -175,7 +174,7 @@ int main(int argc, char** argv) {
 				break;
 			}
 			default: {
-				printf("unexpected token %s\n", tokenNames[t->type]);
+				lineError("unexpected token\n", t->lineNum);
 				exit(1);
 			}
 		}
