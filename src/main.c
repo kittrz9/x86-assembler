@@ -129,10 +129,26 @@ int main(int argc, char** argv) {
 						b.patchAddr = code->size;
 						strncpy(b.labelName, t->labelName, MAX_LABEL_LEN);
 						dynamicArrayAdd(backpatches, &b);
-						//addBackpatchRelative(backpatches, t->labelName, code->size, code->size-1);
 						addU32(code, 0);
 						break;
 					}
+					case INSTR_RET: {
+						addU8(code, 0xc3);
+						break;
+					};
+					case INSTR_CALL: {
+						addU8(code, 0xe8);
+						++t;
+						expect(TOKEN_ADDRESS, t);
+						struct backpatchStruct b;
+						b.relative = true;
+						b.relativeFrom = code->size-1;
+						b.patchAddr = code->size;
+						strncpy(b.labelName, t->labelName, MAX_LABEL_LEN);
+						dynamicArrayAdd(backpatches, &b);
+						addU32(code, 0);
+						break;
+					};
 					case INSTR_ADD: {
 						++t;
 						expect(TOKEN_REGISTER, t);

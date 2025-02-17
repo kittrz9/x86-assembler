@@ -2,6 +2,14 @@
 ; all numbers in hex
 
 
+; esi has the address to the char
+printChar:
+	mov eax #1
+	mov edi #1
+	mov edx #1
+	syscall
+	ret
+
 entry:
 	mov eax #1
 	mov edi #1
@@ -27,6 +35,10 @@ entry:
 	jmp asdf
 	db #aa #aa
 asdf:
+	mov esi str
+	add esi #2
+	call printChar
+
 	mov eax #3c
 	mov edi #0
 	syscall

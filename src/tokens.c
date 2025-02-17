@@ -60,6 +60,8 @@ char* instrNames[] = {
 	[INSTR_SYSCALL] = "syscall",
 	[INSTR_DB] = "db",
 	[INSTR_ADD] = "add",
+	[INSTR_RET] = "ret",
+	[INSTR_CALL] = "call",
 };
 
 enum x86Instr isValidInstruction(char* str) {

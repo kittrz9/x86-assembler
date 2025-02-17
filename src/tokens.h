@@ -14,6 +14,7 @@ enum tokenType {
 	TOKEN_REGISTER,
 	TOKEN_STRING,
 	TOKEN_DEREFERENCE,
+
 	TOKEN_END,
 };
 
@@ -28,6 +29,7 @@ enum x86Regs {
 	REG_EBP,
 	REG_ESI,
 	REG_EDI,
+
 	REG_COUNT,
 	REG_INVALID,
 };
@@ -40,6 +42,9 @@ enum x86Instr {
 	INSTR_SYSCALL,
 	INSTR_DB,
 	INSTR_ADD,
+	INSTR_RET,
+	INSTR_CALL,
+
 	INSTR_COUNT,
 	INSTR_INVALID,
 };
