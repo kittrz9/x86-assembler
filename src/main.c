@@ -9,12 +9,14 @@
 #include "backpatches.h"
 #include "tokens.h"
 #include "dynamicArray.h"
+#include "endian.h"
 
 void addU8(dynamicArray* code, uint8_t x) {
 	dynamicArrayAdd(code, &x);
 }
 
 void addU32(dynamicArray* code, uint32_t x) {
+	endianSwap(&x, sizeof(x), LITTLE_ENDIAN);
 	for(uint8_t i = 0; i < 4; ++i) {
 		addU8(code, x >> i*8);
 	}
@@ -35,6 +37,7 @@ void expect(enum tokenType expectedToken, token* newToken) {
 }
 
 int main(int argc, char** argv) {
+	endianDetect();
 	if(argc != 2) {
 		return 1;
 	}
@@ -109,7 +112,6 @@ int main(int argc, char** argv) {
 							b.patchAddr = code->size;
 							strncpy(b.labelName, t->labelName, MAX_LABEL_LEN);
 							dynamicArrayAdd(backpatches, &b);
-							//addBackpatch(backpatches, t->labelName, code->size);
 							addU32(code, 0);
 						} else if(t->type == TOKEN_INT) {
 							addU32(code, t->intValue);
