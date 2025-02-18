@@ -89,9 +89,10 @@ int main(int argc, char** argv) {
 						} else {
 							expect(TOKEN_REGISTER, t);
 							if((t+1)->type == TOKEN_REGISTER) {
+								uint8_t dst = t->reg;
 								++t;
 								addU8(code, 0x89);
-								addU8(code, 0xc0 + t->reg * 8);
+								addU8(code, 0xc0 + t->reg * 8 + dst);
 								break;
 							} else if((t+1)->type == TOKEN_DEREFERENCE) {
 								uint8_t dst = t->reg * 8;

@@ -5,8 +5,8 @@
 ; esi has the address to the char
 printChar:
 	mov eax #1
-	mov edi #1
-	mov edx #1
+	mov edi eax
+	mov edx eax
 	syscall
 	ret
 
