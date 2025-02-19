@@ -5,7 +5,7 @@
 
 #include "dynamicArray.h"
 
-#define MAX_LABEL_LEN 32
+#define MAX_LABEL_LEN 64
 
 struct labelStruct {
 	char name[MAX_LABEL_LEN];

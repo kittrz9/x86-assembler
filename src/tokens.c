@@ -3,6 +3,8 @@
 #include <stdio.h>
 #include <string.h>
 
+#include "labels.h"
+
 char* tokenNames[] = {
 	[TOKEN_INSTRUCTION] = "TOKEN_INSTRUCTION",
 	[TOKEN_LABEL] = "TOKEN_LABEL",
@@ -43,7 +45,7 @@ uint8_t endsWith(char* str, char c) {
 	return str[l-1] == c;
 }
 
-#define MAX_TOKEN_LEN 64
+#define MAX_TOKEN_LEN MAX_LABEL_LEN
 void strAppend(char* str, char c) {
 	size_t l = strlen(str);
 	if(l >= MAX_TOKEN_LEN-1) {
@@ -147,11 +149,11 @@ void tokenize(dynamicArray* tokens, char* str, size_t size) {
 				dynamicArrayAdd(tokens, &t);
 			} else if(endsWith(tokenStr, ':')) {
 				t.type = TOKEN_LABEL;
-				strcpy(t.labelName, tokenStr);
+				strncpy(t.labelName, tokenStr, MAX_LABEL_LEN);
 				dynamicArrayAdd(tokens, &t);
 			} else if(tokenStr[0] != '\0') { // treat any other string as a label address
 				t.type = TOKEN_ADDRESS;
-				strcpy(t.labelName, tokenStr);
+				strncpy(t.labelName, tokenStr, MAX_LABEL_LEN);
 				dynamicArrayAdd(tokens, &t);
 			}
 

@@ -43,6 +43,7 @@ asdf:
 	mov edi #0
 	syscall
 
+
 str:
 	db "test string" #a
 str2:

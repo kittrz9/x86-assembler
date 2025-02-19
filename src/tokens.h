@@ -6,6 +6,8 @@
 
 #include "dynamicArray.h"
 
+#include "labels.h"
+
 enum tokenType {
 	TOKEN_INSTRUCTION,
 	TOKEN_LABEL,
@@ -58,8 +60,8 @@ typedef struct {
 		uint32_t intValue;
 		enum x86Regs reg;
 		enum x86Instr instr;
-		char labelName[32];
-		char string[32];
+		char labelName[MAX_LABEL_LEN];
+		char string[MAX_LABEL_LEN];
 	};
 } token;
 
