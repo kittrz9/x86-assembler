@@ -9,6 +9,7 @@
 struct backpatchStruct {
 	char labelName[MAX_LABEL_LEN];
 	uint32_t patchAddr;
+	size_t patchSize;
 	bool relative;
 	uint32_t relativeFrom;
 };

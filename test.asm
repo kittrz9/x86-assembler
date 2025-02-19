@@ -36,8 +36,14 @@ entry:
 	db #aa #aa
 asdf:
 	mov esi str
-	add esi #2
+	add esi #a
+	mov ecx #fffffff7
+loop:
+	push ecx
 	call printChar
+	pop ecx
+	add ecx #1
+	jnc loop
 
 	mov eax #3c
 	mov edi #0

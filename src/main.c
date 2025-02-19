@@ -111,6 +111,7 @@ int main(int argc, char** argv) {
 							struct backpatchStruct b;
 							b.relative = false;
 							b.patchAddr = code->size;
+							b.patchSize = sizeof(uint32_t);
 							strncpy(b.labelName, t->labelName, MAX_LABEL_LEN);
 							dynamicArrayAdd(backpatches, &b);
 							addU32(code, 0);
@@ -130,6 +131,7 @@ int main(int argc, char** argv) {
 						b.relative = true;
 						b.relativeFrom = code->size-1;
 						b.patchAddr = code->size;
+						b.patchSize = sizeof(uint32_t);
 						strncpy(b.labelName, t->labelName, MAX_LABEL_LEN);
 						dynamicArrayAdd(backpatches, &b);
 						addU32(code, 0);
@@ -147,6 +149,7 @@ int main(int argc, char** argv) {
 						b.relative = true;
 						b.relativeFrom = code->size-1;
 						b.patchAddr = code->size;
+						b.patchSize = sizeof(uint32_t);
 						strncpy(b.labelName, t->labelName, MAX_LABEL_LEN);
 						dynamicArrayAdd(backpatches, &b);
 						addU32(code, 0);
@@ -160,6 +163,75 @@ int main(int argc, char** argv) {
 						++t;
 						addU32(code, t->intValue);
 						break;
+					}
+
+					// really need to clean up how instructions are implemented
+					case INSTR_JZ: {
+						++t;
+						expect(TOKEN_ADDRESS, t);
+						addU8(code, 0x74);
+						struct backpatchStruct b;
+						b.relative = true;
+						b.relativeFrom = code->size-4;
+						b.patchAddr = code->size;
+						b.patchSize = sizeof(uint8_t);
+						strncpy(b.labelName, t->labelName, MAX_LABEL_LEN);
+						dynamicArrayAdd(backpatches, &b);
+						addU8(code, 0);
+						break;
+					}
+					case INSTR_JC: {
+						++t;
+						expect(TOKEN_ADDRESS, t);
+						addU8(code, 0x72);
+						struct backpatchStruct b;
+						b.relative = true;
+						b.relativeFrom = code->size-4;
+						b.patchAddr = code->size;
+						b.patchSize = sizeof(uint8_t);
+						strncpy(b.labelName, t->labelName, MAX_LABEL_LEN);
+						dynamicArrayAdd(backpatches, &b);
+						addU8(code, 0);
+						break;
+					}
+					case INSTR_JNZ: {
+						++t;
+						expect(TOKEN_ADDRESS, t);
+						addU8(code, 0x75);
+						struct backpatchStruct b;
+						b.relative = true;
+						b.relativeFrom = code->size-4;
+						b.patchAddr = code->size;
+						b.patchSize = sizeof(uint8_t);
+						strncpy(b.labelName, t->labelName, MAX_LABEL_LEN);
+						dynamicArrayAdd(backpatches, &b);
+						addU8(code, 0);
+						break;
+					}
+					case INSTR_JNC: {
+						++t;
+						expect(TOKEN_ADDRESS, t);
+						addU8(code, 0x73);
+						struct backpatchStruct b;
+						b.relative = true;
+						b.relativeFrom = code->size-4;
+						b.patchAddr = code->size;
+						b.patchSize = sizeof(uint8_t);
+						strncpy(b.labelName, t->labelName, MAX_LABEL_LEN);
+						dynamicArrayAdd(backpatches, &b);
+						addU8(code, 0);
+						break;
+					}
+					case INSTR_PUSH: {
+						++t;
+						expect(TOKEN_REGISTER, t);
+						addU8(code, 0x50 + t->reg);
+						break;
+					}
+					case INSTR_POP: {
+						++t;
+						expect(TOKEN_REGISTER, t);
+						addU8(code, 0x58 + t->reg);
 					}
 					case INSTR_DB: {
 						while(1) {

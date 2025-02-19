@@ -64,6 +64,12 @@ char* instrNames[] = {
 	[INSTR_ADD] = "add",
 	[INSTR_RET] = "ret",
 	[INSTR_CALL] = "call",
+	[INSTR_JZ] = "jz",
+	[INSTR_JC] = "jc",
+	[INSTR_JNZ] = "jnz",
+	[INSTR_JNC] = "jnc",
+	[INSTR_PUSH] = "push",
+	[INSTR_POP] = "pop",
 };
 
 enum x86Instr isValidInstruction(char* str) {
