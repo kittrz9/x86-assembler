@@ -37,13 +37,13 @@ entry:
 asdf:
 	mov esi str
 	add esi #a
-	mov ecx #fffffff7
+	mov ecx #a
 loop:
 	push ecx
 	call printChar
 	pop ecx
-	add ecx #1
-	jnc loop
+	dec ecx
+	jnz loop
 
 	mov eax #3c
 	mov edi #0

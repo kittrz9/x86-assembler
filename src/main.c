@@ -232,6 +232,21 @@ int main(int argc, char** argv) {
 						++t;
 						expect(TOKEN_REGISTER, t);
 						addU8(code, 0x58 + t->reg);
+						break;
+					}
+					case INSTR_INC: {
+						++t;
+						expect(TOKEN_REGISTER, t);
+						addU8(code, 0xff);
+						addU8(code, 0xc0 + t->reg);
+						break;
+					}
+					case INSTR_DEC: {
+						++t;
+						expect(TOKEN_REGISTER, t);
+						addU8(code, 0xff);
+						addU8(code, 0xc8 + t->reg);
+						break;
 					}
 					case INSTR_DB: {
 						while(1) {
