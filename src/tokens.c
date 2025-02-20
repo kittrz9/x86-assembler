@@ -57,21 +57,9 @@ void strAppend(char* str, char c) {
 }
 
 char* instrNames[] = {
-	[INSTR_MOV] = "mov",
-	[INSTR_JMP] = "jmp",
-	[INSTR_SYSCALL] = "syscall",
-	[INSTR_DB] = "db",
-	[INSTR_ADD] = "add",
-	[INSTR_RET] = "ret",
-	[INSTR_CALL] = "call",
-	[INSTR_JZ] = "jz",
-	[INSTR_JC] = "jc",
-	[INSTR_JNZ] = "jnz",
-	[INSTR_JNC] = "jnc",
-	[INSTR_PUSH] = "push",
-	[INSTR_POP] = "pop",
-	[INSTR_INC] = "inc",
-	[INSTR_DEC] = "dec",
+#define X(a, b) [a] = #b,
+	INSTRUCTIONS
+#undef X
 };
 
 enum x86Instr isValidInstruction(char* str) {

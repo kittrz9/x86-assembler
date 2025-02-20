@@ -38,22 +38,28 @@ enum x86Regs {
 
 extern char regNames[REG_COUNT][4];
 
+// https://en.wikipedia.org/wiki/X_macro
+#define INSTRUCTIONS \
+	X(INSTR_MOV, mov) \
+	X(INSTR_JMP, jmp) \
+	X(INSTR_SYSCALL, syscall) \
+	X(INSTR_DB, db) \
+	X(INSTR_ADD, add) \
+	X(INSTR_RET, ret) \
+	X(INSTR_CALL, call) \
+	X(INSTR_JZ, jz) \
+	X(INSTR_JC, jc) \
+	X(INSTR_JNZ, jnz) \
+	X(INSTR_JNC, jnc) \
+	X(INSTR_PUSH, push) \
+	X(INSTR_POP, pop) \
+	X(INSTR_INC, inc) \
+	X(INSTR_DEC, dec) 
+
 enum x86Instr {
-	INSTR_MOV,
-	INSTR_JMP,
-	INSTR_SYSCALL,
-	INSTR_DB,
-	INSTR_ADD,
-	INSTR_RET,
-	INSTR_CALL,
-	INSTR_JZ,
-	INSTR_JC,
-	INSTR_JNZ,
-	INSTR_JNC,
-	INSTR_PUSH,
-	INSTR_POP,
-	INSTR_INC,
-	INSTR_DEC,
+#define X(a, b) a,
+	INSTRUCTIONS
+#undef X
 
 	INSTR_COUNT,
 	INSTR_INVALID,
